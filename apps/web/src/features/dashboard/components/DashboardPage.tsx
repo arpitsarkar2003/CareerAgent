@@ -1,5 +1,6 @@
 import { SoftGrain } from "@/components/softly/SoftGrain";
 import { requireUser } from "@/features/auth/lib/requireUser";
+import { SiteFooter } from "@/features/legal/components/SiteFooter";
 import { APP_NAME } from "@/lib/constants";
 import { AUTH_ROUTES } from "@/services/auth";
 import { UserButton } from "@clerk/nextjs";
@@ -30,6 +31,10 @@ export async function DashboardPage() {
             You&apos;re signed in. Knowledge upload and drafting land here in
             Module 2.
           </p>
+        </div>
+
+        <div className="relative z-[1] mt-auto pt-8">
+          <SiteFooter />
         </div>
       </main>
     </>

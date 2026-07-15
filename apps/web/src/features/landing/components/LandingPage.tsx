@@ -3,9 +3,9 @@
 import { SoftGrain } from "@/components/softly/SoftGrain";
 import { AuthHeaderActions } from "@/features/auth/components/AuthHeaderActions";
 import { ApiHealthBadge } from "@/features/landing/components/ApiHealthBadge";
-import { LandingFooter } from "@/features/landing/components/LandingFooter";
 import { LandingHero } from "@/features/landing/components/LandingHero";
 import { useApiHealth } from "@/features/landing/hooks/useApiHealth";
+import { SiteFooter } from "@/features/legal/components/SiteFooter";
 
 export function LandingPage() {
   const apiStatus = useApiHealth();
@@ -17,7 +17,9 @@ export function LandingPage() {
         <ApiHealthBadge status={apiStatus} />
         <AuthHeaderActions />
         <LandingHero />
-        <LandingFooter />
+        <div className="relative z-[1] mt-auto pt-8">
+          <SiteFooter />
+        </div>
       </main>
     </>
   );
