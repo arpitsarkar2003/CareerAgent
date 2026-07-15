@@ -1,0 +1,12 @@
+# env files with real secrets
+.env
+.env.local
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# node (apps/web has its own, this covers root-level tooling)
+node_modules/
