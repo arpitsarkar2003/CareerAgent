@@ -17,9 +17,10 @@ cover the 9-agent design.
   embedding → store in `knowledge_chunks`. Basic view/edit UI.
   Spec: `docs/modules/02-knowledge-base.md`.
 
-- [ ] **Module 3 — AI provider layer**
-  `apps/api/ai/` adapter interface, OpenRouter implementation, env-var
-  provider switching, embedding model pinned + documented.
+- [x] **Module 3 — AI provider layer**
+  `apps/api/ai/` adapter interface, Cloudflare Workers AI implementation
+  (chat + embed), env-var provider switching, embedding model pinned +
+  documented. Spec: `docs/modules/03-ai-provider.md`.
 
 - [ ] **Module 4 — Job source connectors (API-based)**
   Greenhouse, Lever, Ashby connectors in `apps/api/sources/`. On-demand

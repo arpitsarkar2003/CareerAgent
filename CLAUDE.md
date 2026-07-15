@@ -19,9 +19,11 @@ Two services, run via Docker Compose, plus hosted Supabase (DB) and Clerk (Auth)
   talks to it, with the service-role key.
 - **Clerk** — Sign-in / session for the single user.
 
-Default AI provider is OpenRouter, accessed through a provider-agnostic
-adapter in `apps/api`, so switching to OpenAI or Anthropic directly later
-is a config change, not a rewrite.
+Default AI provider is **Cloudflare Workers AI**, accessed through a
+provider-agnostic adapter in `apps/api` (`AI_PROVIDER=cloudflare`). Chat
+default `@cf/zai-org/glm-4.7-flash`; embed default `@cf/baai/bge-large-en-v1.5`
+(1024-dim). Switching to another provider later is a config + adapter change,
+not a rewrite of calling code.
 
 ## Repo structure
 
@@ -64,8 +66,9 @@ before that module is built.
 
 **Module 1 done** (scaffold + schema + thin Clerk auth shell).
 **Module 2 done** (knowledge ingest + dashboard shell + API conventions).
-See `docs/ROADMAP.md`. Next: Module 3 (AI provider adapter) — spec exists at
-`docs/modules/03-ai-provider.md`.
+**Module 3 done** (AI provider adapter: chat + embed via Cloudflare Workers AI).
+See `docs/ROADMAP.md`. Next: Module 4 (job source connectors) — write its
+spec before starting.
 
 Career Agent Supabase project ref: `imypinqvbhdjavuotenh` (never howie).
 API DB client lives in `apps/api/db/` (avoids shadowing the `supabase` PyPI package).
