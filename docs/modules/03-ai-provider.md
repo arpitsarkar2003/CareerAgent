@@ -65,7 +65,7 @@ migration path to a different provider; nothing calling code depends on.
 | Doc | Use |
 |-----|-----|
 | `docs/ARCHITECTURE.md` | Provider abstraction principle, secrets split |
-| `docs/DATA_MODEL.md` | Embedding dimension (1536) already locked |
+| `docs/DATA_MODEL.md` | Embedding dimension (1024) already locked |
 | `docs/modules/02-knowledge-base.md` | The narrow embed function being replaced, and the API conventions to keep following even though this module has no new routes |
 
 ---
@@ -79,7 +79,7 @@ The adapter exposes exactly two capabilities to the rest of `apps/api`:
   model's reply text plus basic metadata (model used, token counts if
   available).
 - **Embed**: given a text string, returns a fixed-length vector matching
-  the locked dimension (1536). Never returns a different dimension based
+  the locked dimension (1024). Never returns a different dimension based
   on provider — if a future provider's native embedding size differs, the
   adapter is responsible for erroring clearly rather than silently storing
   a mismatched vector.

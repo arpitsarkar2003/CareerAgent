@@ -1,6 +1,6 @@
 # Module 2 — Knowledge Base Ingestion + Dashboard Shell
 
-**Status:** Not started.
+**Status:** Done.
 **Depends on:** Module 1 (scaffold, schema, Clerk shell).
 **Unblocks:** Every later dashboard module (2b onward) inherits the UI
 shell and API conventions locked here — this is the module that turns the
@@ -37,9 +37,10 @@ looks and feels like a real product, not a stub page.
 
 ## In scope
 
-- Upload/paste flow for three source types: resume, cover letter, project/
-  achievement notes. Support both pasting raw text and uploading a file
-  (PDF/DOCX/plain text) for resume and cover letters at minimum.
+- Upload/paste flow for all four source types in `DATA_MODEL.md`: resume,
+  cover letter, project, and note. Support both pasting raw text and
+  uploading a file (PDF/DOCX/plain text) for resume and cover letters at
+  minimum.
 - Chunking strategy (see Decisions) implemented server-side in `apps/api`.
 - A minimal embedding call — just enough to embed a chunk of text and get
   a vector back — used by this module. This is intentionally narrow; the
@@ -103,10 +104,11 @@ looks and feels like a real product, not a stub page.
 
 ### Embedding call boundary
 - A single function (not a full adapter class) in `apps/api/ai/` takes
-  text, returns a vector, and hard-codes OpenRouter's embedding endpoint
-  for now. Module 3 will replace its internals with the full
-  provider-agnostic adapter — routers and chunking code that call this
-  function should not need to change when that happens.
+  text, returns a vector, and calls Cloudflare Workers AI
+  (`@cf/baai/bge-large-en-v1.5`, 1024 dims) for free-tier embeddings.
+  Module 3 will replace its internals with the full provider-agnostic
+  adapter — routers and chunking code that call this function should not
+  need to change when that happens.
 
 ### Per-request auth
 - Every route this module adds requires a valid Clerk session; the API
@@ -118,6 +120,21 @@ looks and feels like a real product, not a stub page.
   text) and never stored as raw binary blobs in Supabase — only the
   extracted, chunked text is persisted. Original files are discarded
   after parsing.
+
+### Chunk edit re-embeds
+- Editing a chunk's text always re-embeds it as part of the same save
+  operation — text and vector are updated together, never text-only. A
+  stale vector against edited text would silently break similarity search
+  in Module 7 (Resume Brain), so there is no "leave the old vector"
+  fallback path.
+
+### Source types (four, not collapsed)
+- The upload UI offers all four `DATA_MODEL.md` source types as distinct
+  choices: `resume`, `cover_letter`, `project`, `note`. Project chunks
+  keep their own type rather than folding into `note`, since a specific
+  project (stack, outcome) is exactly what later drafting wants to cite
+  with detail when a posting mentions a matching technology — collapsing
+  it away loses that signal for no real UI savings.
 
 ---
 
@@ -137,6 +154,12 @@ everything else builds on.
   tablet (~768px), desktop (~1280px+).
 - **Top bar**: minimal — page title/breadcrumb, account/sign-out (Clerk's
   user button is fine as-is).
+- **Knowledge Base two-stage view** (shipped):
+  1. **Intake** — left: upload/paste form; right: source cards (not the
+     full chunk dump). Click a card to open detail.
+  2. **Detail** — left: source cards; right: scrollable chunk list for the
+     selected source. **Add** returns to intake. Panels scroll
+     independently; stage change uses a light fade (not a heavy slide).
 
 ### Theme
 - Reuse the existing Tectonic landing page's design tokens — colors, font
@@ -214,21 +237,25 @@ reuse the same Card and Button, not define their own).
 
 ## Acceptance criteria
 
-- [ ] I can paste or upload a resume, cover letter, and a note, and each
-  produces sensible chunks in `knowledge_chunks` with correct
+- [x] I can paste or upload a resume, cover letter, project, and note, and
+  each produces sensible chunks in `knowledge_chunks` with the correct
   `source_type` and non-empty `metadata` where extractable.
-- [ ] Re-uploading a source replaces its old chunks rather than
-  duplicating them.
-- [ ] I can view all chunks for a source, edit a chunk's text and have it
+  *(Requires `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` in `apps/api/.env`.)*
+- [x] Re-uploading a source replaces its old chunks rather than
+  duplicating them. *(via `replace_knowledge_source` RPC)*
+- [x] I can view all chunks for a source, edit a chunk's text and have it
   persist, and delete a chunk or an entire source.
-- [ ] The dashboard shell renders correctly at mobile/tablet/desktop
+- [x] Editing a chunk's text triggers a re-embed in the same save — the
+  stored vector always matches the current text, never a stale one.
+- [x] The dashboard shell renders correctly at mobile/tablet/desktop
   widths, with the sidebar collapsing appropriately below tablet width.
-- [ ] The dashboard visually matches the existing Tectonic theme (colors,
+- [x] The dashboard visually matches the existing Tectonic theme (colors,
   type, spacing) rather than looking like a separate app.
-- [ ] Every new API route rejects requests without a valid Clerk session.
-- [ ] List endpoints support pagination even though the dataset is small
+  *(Soft tokens from landing `globals.css`.)*
+- [x] Every new API route rejects requests without a valid Clerk session.
+- [x] List endpoints support pagination even though the dataset is small
   today.
-- [ ] No Module 3+ features (provider switching, scoring, connectors)
+- [x] No Module 3+ features (provider switching, scoring, connectors)
   slipped in.
 
 ---
@@ -265,9 +292,19 @@ reuse the same Card and Button, not define their own).
 
 | Question | Resolution |
 |----------|------------|
-| PDF/DOCX parsing library | Implementer's choice; document whichever is used in the PR |
-| Exact sidebar nav items beyond Knowledge Base | Add as stubs/disabled for not-yet-built modules, or omit until built — implementer's call, just don't hardcode a final fixed list that's awkward to extend |
-| Dark/light mode toggle | Only if the landing page already has one |
+| PDF/DOCX parsing library | **Shipped:** `pypdf` + `python-docx` |
+| Exact sidebar nav items beyond Knowledge Base | **Shipped:** disabled stubs (Search, Applications, Tracker, Email, Interview Prep, Negotiation) via `apps/web/src/lib/nav.ts` |
+| Dark/light mode toggle | **Shipped:** none (landing is light-only Soft tokens) |
+| Embedding provider (cost) | **Shipped:** Cloudflare Workers AI `@cf/baai/bge-large-en-v1.5` (1024-dim), not paid OpenRouter. Env: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `EMBEDDING_MODEL`. Schema migrated from Module 1's `vector(1536)`. |
+
+## Shipped notes (post-acceptance)
+
+- Theme tokens: Soft palette in `apps/web/src/app/globals.css` (docs historically say "Tectonic").
+- Replace-on-reupload: Postgres RPC `replace_knowledge_source` in
+  `supabase/migrations/`.
+- Chunk list UI pages at API max `limit=100` when a source has more chunks.
+- PDF hard-wrap reflow + tiny-fragment coalesce in `apps/api/services/chunking.py`
+  — resume PDF chunk quality is good enough for Module 2; refine later if needed.
 
 ---
 

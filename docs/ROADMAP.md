@@ -12,9 +12,10 @@ cover the 9-agent design.
   Clerk env wiring, migrations for v1 tables, RLS deny-public + API
   elevated client.
 
-- [ ] **Module 2 — Knowledge base ingestion**
+- [x] **Module 2 — Knowledge base ingestion**
   Upload flow for resume/cover letters/project notes → chunking →
   embedding → store in `knowledge_chunks`. Basic view/edit UI.
+  Spec: `docs/modules/02-knowledge-base.md`.
 
 - [ ] **Module 3 — AI provider layer**
   `apps/api/ai/` adapter interface, OpenRouter implementation, env-var

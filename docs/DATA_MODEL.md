@@ -26,7 +26,7 @@ Unchanged from v1.
 | source_type | text          | 'resume' \| 'cover_letter' \| 'project' \| 'note' |
 | source_name | text          | e.g. filename or free label             |
 | content     | text          | the chunk text                          |
-| embedding   | vector(1536)  | pgvector, hnsw index, cosine ops        |
+| embedding   | vector(1024)  | pgvector, hnsw index, cosine ops (Cloudflare `@cf/baai/bge-large-en-v1.5`) |
 | metadata    | jsonb         | e.g. { role, company, dates, skills[] } |
 | created_at  | timestamptz   |                                          |
 
@@ -163,8 +163,9 @@ Agent 9's output when an application reaches `offer`.
   poll query.
 
 ## Notes
-- Embedding dimension (1536) assumes an OpenAI-family embedding model,
-  locked in Module 1 — do not change without a re-embed plan.
+- Embedding dimension (1024) matches Cloudflare Workers AI
+  `@cf/baai/bge-large-en-v1.5` (migrated from Module 1's 1536 OpenAI-family
+  default). Do not change without a migration + full re-embed.
 - Foreign keys: `applications.job_posting_id` → `job_postings(id)`
   `ON DELETE RESTRICT`; `emails.application_id` → `applications(id)`
   nullable `ON DELETE SET NULL`; `runner_tasks.application_id`,
