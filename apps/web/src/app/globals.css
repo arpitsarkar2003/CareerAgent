@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --soft-bg: #fdfcf8;
+  --soft-sage: #e8efe8;
+  --soft-lavender: #efedf4;
+  --soft-coral: #ffb7b2;
+  --soft-coral-soft: #ffe4e1;
+  --soft-lilac: #e6e6fa;
+  --soft-stone: #292524;
+  --soft-muted: #78716c;
+  --soft-stone-200: #e7e5e4;
+  --soft-stone-100: #f5f5f4;
+  --soft-stone-50: #fafaf9;
+  --soft-stone-400: #a8a29e;
+  --soft-stone-500: #78716c;
+  --soft-stone-800: #292524;
+  --soft-white: #ffffff;
+  --soft-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --soft-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-soft-bg: var(--soft-bg);
+  --color-soft-sage: var(--soft-sage);
+  --color-soft-lavender: var(--soft-lavender);
+  --color-soft-coral: var(--soft-coral);
+  --color-soft-coral-soft: var(--soft-coral-soft);
+  --color-soft-lilac: var(--soft-lilac);
+  --color-soft-stone: var(--soft-stone);
+  --color-soft-muted: var(--soft-muted);
+  --color-soft-stone-200: var(--soft-stone-200);
+  --color-soft-stone-100: var(--soft-stone-100);
+  --color-soft-stone-50: var(--soft-stone-50);
+  --color-soft-stone-400: var(--soft-stone-400);
+  --color-soft-stone-500: var(--soft-stone-500);
+  --color-soft-stone-800: var(--soft-stone-800);
+  --font-sans: var(--font-outfit);
+  --font-script: var(--font-reenie);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--soft-bg);
+  color: var(--soft-stone);
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.soft-shadow {
+  box-shadow: var(--soft-shadow);
+}
+
+.font-script {
+  font-family: var(--font-reenie), cursive;
+}
+
+@keyframes soft-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 183, 178, 0.45);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 12px rgba(255, 183, 178, 0);
+  }
+}
+
+.animate-soft-float {
+  animation: soft-float 6s var(--soft-ease) infinite;
+}
+
+.animate-soft-float-delayed {
+  animation: soft-float 6s var(--soft-ease) infinite;
+  animation-delay: 2s;
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 3.5s var(--soft-ease) infinite;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.8s var(--soft-ease),
+    transform 0.8s var(--soft-ease);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.soft-scroll-x {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.soft-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-soft-float,
+  .animate-soft-float-delayed,
+  .animate-soft-pulse {
+    animation: none !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
