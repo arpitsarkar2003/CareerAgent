@@ -10,4 +10,9 @@ alwaysApply: true
 - `user_id` is text (Clerk id), not uuid FK to `auth.users`.
 - Schema via `supabase/migrations/` only. Career Agent project ref `imypinqvbhdjavuotenh` — never apply SQL to howie.
 - Probes: `GET /health`, `GET /health/db` (503 fail-closed, no secrets in body).
+- Thin auth shell: public `/` with Sign in/up; protect `/dashboard` via
+  `auth()` + `redirectToSignIn` in the page (Clerk `proxy.ts` / `clerkMiddleware`
+  required). Web may hold server-only `CLERK_SECRET_KEY` for middleware
+  (never `NEXT_PUBLIC_`). Fill `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` or Clerk
+  runs keyless. API JWT verify starts with Module 2 product routes.
 - Do not start Module 2 until `docs/modules/02-…md` exists. Roadmap: `docs/ROADMAP.md`.

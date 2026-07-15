@@ -1,0 +1,30 @@
+---
+description: Career Agent web frontend folder conventions
+globs: apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Web frontend layout
+
+```
+apps/web/src/
+  app/                 # Next.js routes only — thin page files that compose features
+  components/          # Shared UI primitives (SoftGrain, future design-system pieces)
+  features/
+    <feature>/
+      components/      # Feature UI
+      hooks/           # Feature hooks
+      lib/             # Feature server helpers (optional)
+      index.ts         # Public exports
+  services/            # API + domain functions — never call fetch() from components
+    api-client.ts      # Shared HTTP helper
+    health.ts
+    auth.ts
+  lib/                 # App-wide constants/utils
+```
+
+Rules:
+- Pages under `app/` import from `@/features/*` only (no inline fetch).
+- HTTP to `apps/api` goes through `@/services/*` via `api-client`.
+- Clerk session UI lives in `features/auth`; route constants in `services/auth`.
+- New Module 2 knowledge UI → `features/knowledge/` + `services/knowledge.ts`.

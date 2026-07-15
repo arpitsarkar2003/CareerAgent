@@ -31,10 +31,10 @@ in the API.
 
 | Service | Role | Secrets |
 |---------|------|---------|
-| `apps/web` | UI only. Calls `apps/api` for AI, embeddings, and data writes. Auth via Clerk (publishable key only). | Browser-safe: Clerk publishable key, API base URL (`.env.local`) |
-| `apps/api` | Owns all AI/RAG logic, embeddings, elevated Supabase access, and Clerk session verification. | Supabase secret key (`SUPABASE_SECRET_KEY`) + Clerk secret + AI provider keys (`.env`) |
+| `apps/web` | UI only. Calls `apps/api` for AI, embeddings, and data writes. Auth via Clerk. | Browser: Clerk publishable key, API base URL. Server-only on web: `CLERK_SECRET_KEY` for Next middleware (never `NEXT_PUBLIC_`). Never Supabase or AI keys. |
+| `apps/api` | Owns all AI/RAG logic, embeddings, elevated Supabase access, and Clerk session verification (product routes from Module 2+). | Supabase secret key (`SUPABASE_SECRET_KEY`) + Clerk secret + AI provider keys (`.env`) |
 | Supabase | Postgres + pgvector (DB only — not app Auth) | Hosted free project; migrations in `supabase/migrations/` |
-| Clerk | Sign-in / session for the single user | Publishable (web) + secret (api) |
+| Clerk | Sign-in / session for the single user | Publishable (web) + secret (web middleware + api) |
 
 ## Repo layout
 
@@ -45,10 +45,10 @@ in the API.
 ├── docs/                  # PRD, architecture, data model, roadmap, module specs
 ├── apps/
 │   ├── web/               # Next.js App Router (TypeScript)
+│   │                      # app/ (routes) · features/ · services/ · components/
 │   └── api/               # FastAPI (Python)
 │       ├── ai/            # provider adapters
 │       ├── db/            # Supabase elevated client + future queries
-│       ├── ai/            # provider adapters
 │       └── routers/       # HTTP endpoints the frontend calls
 └── supabase/
     └── migrations/        # versioned SQL — never manual dashboard edits
@@ -120,7 +120,8 @@ this app. RLS is enabled on all tables and denies public/`anon` access;
   hosted project + Clerk. Exact host TBD in polish / deploy work.
 - **Secrets**: split by service. `apps/api/.env` holds the Supabase
   secret key (`SUPABASE_SECRET_KEY`, or legacy service_role fallback), Clerk
-  secret key, and AI provider keys.
-  `apps/web/.env.local` holds only browser-safe values (Clerk publishable
-  key, API base URL). Never commit secrets — `.env.example` files document
-  required vars with no values.
+  secret key, and AI provider keys. `apps/web/.env.local` holds Clerk
+  publishable key, API base URL, and server-only `CLERK_SECRET_KEY` for
+  Next middleware (never `NEXT_PUBLIC_`; never Supabase or AI keys on web).
+  Never commit secrets — `.env.example` files document required vars with
+  no values.

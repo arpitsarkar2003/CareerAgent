@@ -262,6 +262,21 @@ curl -s http://localhost:8000/health          # {"status":"ok"}
 curl -s http://localhost:8000/health/db       # {"status":"ok","db":"ok"} when envs set
 ```
 
+### Thin Clerk shell (M1.1)
+
+1. Fill `apps/web/.env.local`: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (required —
+   without it Clerk runs keyless), `CLERK_SECRET_KEY` (server-only; same as
+   API), `NEXT_PUBLIC_API_BASE_URL`, optional
+   `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and
+   `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`.
+2. Clerk dashboard: allow origin `http://localhost:3000`.
+3. Landing shows Sign in / Sign up (top right); `/sign-in` and `/sign-up`
+   pages exist for redirects; after login → `/dashboard`.
+4. Logged-out `/dashboard` redirects to `/sign-in`.
+5. After `npm install @clerk/nextjs` on the host, rebuild web or
+   `docker compose exec web npm install` so the `web_node_modules` volume
+   picks up the package.
+
 ---
 
 ## Open questions (resolved or deferred)

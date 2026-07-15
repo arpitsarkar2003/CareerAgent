@@ -52,17 +52,25 @@ before that module is built.
   a provider SDK directly inside a router.
 - `apps/web` never talks to Supabase or an AI provider directly — everything
   goes through `apps/api`.
-- Secrets stay split by service. The service-role key, Clerk secret, and AI
-  provider keys live only in `apps/api/.env`. `apps/web/.env.local` only
-  ever holds browser-safe values (Clerk publishable key, API base URL).
+- Secrets stay split by service. Supabase secret / service-role and AI
+  provider keys live only in `apps/api/.env`. `apps/web/.env.local` holds
+  Clerk publishable key, API base URL, and (server-only) `CLERK_SECRET_KEY`
+  for Next.js Clerk middleware — never `NEXT_PUBLIC_` for the secret, and
+  never Supabase or AI keys on web.
 - Read `docs/` before starting any module. `docs/ROADMAP.md` is the current
   build order.
 
 ## Current status
 
-**Module 1 done** (scaffold + schema). See `docs/ROADMAP.md`.
+**Module 1 done** (scaffold + schema + thin Clerk auth shell). See `docs/ROADMAP.md`.
 Next: Module 2 only after `docs/modules/02-…md` exists.
 
 Career Agent Supabase project ref: `imypinqvbhdjavuotenh` (never howie).
 API DB client lives in `apps/api/db/` (avoids shadowing the `supabase` PyPI package).
 Migration applied via Dashboard SQL from `supabase/migrations/20260715163507_module1_schema.sql`.
+Web: `/` public with Sign in/up; `/dashboard` Clerk-protected stub (Module 2 home).
+API Clerk JWT verification deferred until product routes (Module 2+).
+
+Frontend layout: `app/` routes are thin; UI in `features/<name>/`; API calls only
+via `services/` (`api-client`, `health`, `auth`). See
+`.cursor/rules/career-agent-web-frontend.mdc`.
