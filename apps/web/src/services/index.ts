@@ -8,3 +8,5 @@ export {
   type HealthResponse,
 } from "@/services/health";
 export { AUTH_ROUTES, getPostAuthRedirect } from "@/services/auth";
+export * from "@/services/knowledge";
+

@@ -4,3 +4,10 @@ supabase
 pydantic
 python-dotenv
 httpx
+PyJWT
+cryptography
+pypdf
+python-docx
+python-multipart
+eval_type_backport
+

@@ -129,13 +129,13 @@ and embeddings. Revisit only if the knowledge base grows past roughly 50k
 chunks or query latency becomes a problem.
 
 ### 8. AI provider abstraction
-Unchanged from v1: all AI calls (chat + embeddings) go through
-`apps/api/ai/`, behind a single interface with a `chat` method and an
-`embed` method, never direct SDK calls inside routers. Default
-implementation wraps OpenRouter; provider is chosen via an env var
-(`AI_PROVIDER=openrouter|openai|anthropic`). Embedding model stays fixed
-independent of the chat model, since switching it requires re-embedding
-the whole knowledge base.
+All AI calls go through `apps/api/ai/`, never direct SDKs inside routers.
+Module 2 ships a narrow `embed_text()` using **Cloudflare Workers AI**
+(`@cf/baai/bge-large-en-v1.5`, 1024-dim) for free-tier embeddings
+(`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`). Module 3 replaces that
+with a provider-agnostic adapter (`chat` + `embed`, `AI_PROVIDER` switch).
+Embedding model/dimension stays fixed independent of the chat model —
+switching either requires re-embedding the whole knowledge base.
 
 ### 9. RAG flow for drafting an application (extended)
 1. Company research (funding, tech stack, news, culture) is gathered and

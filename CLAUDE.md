@@ -62,15 +62,16 @@ before that module is built.
 
 ## Current status
 
-**Module 1 done** (scaffold + schema + thin Clerk auth shell). See `docs/ROADMAP.md`.
-Next: Module 2 only after `docs/modules/02-…md` exists.
+**Module 1 done** (scaffold + schema + thin Clerk auth shell).
+**Module 2 done** (knowledge ingest + dashboard shell + API conventions).
+See `docs/ROADMAP.md`. Next: Module 3 (AI provider adapter) — spec exists at
+`docs/modules/03-ai-provider.md`.
 
 Career Agent Supabase project ref: `imypinqvbhdjavuotenh` (never howie).
 API DB client lives in `apps/api/db/` (avoids shadowing the `supabase` PyPI package).
-Migration applied via Dashboard SQL from `supabase/migrations/20260715163507_module1_schema.sql`.
-Web: `/` public with Sign in/up; `/dashboard` Clerk-protected stub (Module 2 home).
-API Clerk JWT verification deferred until product routes (Module 2+).
+Web: `/` public with Sign in/up; `/dashboard` shell with Knowledge Base UI.
+API product routes under `/api/v1/...` verify Clerk JWTs per request.
 
 Frontend layout: `app/` routes are thin; UI in `features/<name>/`; API calls only
-via `services/` (`api-client`, `health`, `auth`). See
+via `services/` (`api-client`, `health`, `auth`, `knowledge`). See
 `.cursor/rules/career-agent-web-frontend.mdc`.

@@ -1,9 +1,14 @@
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+load_dotenv()
+
+from errors import register_exception_handlers
 from routers.health import router as health_router
+from routers.knowledge import router as knowledge_router
 
 app = FastAPI(title="Career Agent API")
 
@@ -20,4 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+register_exception_handlers(app)
+
 app.include_router(health_router)
+app.include_router(knowledge_router, prefix="/api/v1/knowledge")
