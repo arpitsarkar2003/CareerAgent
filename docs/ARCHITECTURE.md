@@ -10,29 +10,31 @@ in the API.
 ┌─────────────┐      ┌──────────────────┐      ┌───────────────┐
 │  apps/web    │ ───▶ │  apps/api         │ ───▶ │   Supabase     │
 │  Next.js UI  │      │  FastAPI          │      │ Postgres +     │
-│  (dashboard, │ ◀─── │  AI / RAG / DB    │ ◀─── │ pgvector +     │
-│   editor)    │      │                   │      │ Auth           │
-└─────────────┘      └────────┬──────────┘      └───────────────┘
-                              │
-                              ▼
-                      ┌───────────────┐
-                      │  ai/ adapters  │  ← provider-agnostic
-                      │  (chat, embed) │
-                      └───────┬───────┘
-                              ▼
-                 OpenRouter / OpenAI / Anthropic
+│  + Clerk     │ ◀─── │  AI / RAG / DB    │ ◀─── │ pgvector       │
+│  (dashboard, │      │  + Clerk verify   │      │ (DB only)      │
+│   editor)    │      │                   │      └───────────────┘
+└──────┬───────┘      └────────┬──────────┘
+       │                       │
+       ▼                       ▼
+┌──────────────┐       ┌───────────────┐
+│    Clerk     │       │  ai/ adapters  │  ← provider-agnostic
+│  (Auth)      │       │  (chat, embed) │
+└──────────────┘       └───────┬───────┘
+                               ▼
+                  OpenRouter / OpenAI / Anthropic
 
-                      ┌───────────────┐
-                      │  email module  │  → Gmail API or Resend (Module 5)
-                      │  (in apps/api) │
-                      └───────────────┘
+                       ┌───────────────┐
+                       │  email module  │  → Gmail API or Resend (Module 5)
+                       │  (in apps/api) │
+                       └───────────────┘
 ```
 
 | Service | Role | Secrets |
 |---------|------|---------|
-| `apps/web` | UI only. Calls `apps/api` for AI, embeddings, and data writes. May use Supabase anon key for auth state only. | Browser-safe: Supabase URL, anon key, API base URL (`.env.local`) |
-| `apps/api` | Owns all AI/RAG logic, embeddings, and elevated Supabase access. | Service-role key + AI provider keys (`.env`) |
-| Supabase | Postgres + pgvector + Auth | Hosted project; migrations in `supabase/migrations/` |
+| `apps/web` | UI only. Calls `apps/api` for AI, embeddings, and data writes. Auth via Clerk (publishable key only). | Browser-safe: Clerk publishable key, API base URL (`.env.local`) |
+| `apps/api` | Owns all AI/RAG logic, embeddings, elevated Supabase access, and Clerk session verification. | Supabase secret key (`SUPABASE_SECRET_KEY`) + Clerk secret + AI provider keys (`.env`) |
+| Supabase | Postgres + pgvector (DB only — not app Auth) | Hosted free project; migrations in `supabase/migrations/` |
+| Clerk | Sign-in / session for the single user | Publishable (web) + secret (api) |
 
 ## Repo layout
 
@@ -45,7 +47,8 @@ in the API.
 │   ├── web/               # Next.js App Router (TypeScript)
 │   └── api/               # FastAPI (Python)
 │       ├── ai/            # provider adapters
-│       ├── supabase/      # DB client and queries
+│       ├── db/            # Supabase elevated client + future queries
+│       ├── ai/            # provider adapters
 │       └── routers/       # HTTP endpoints the frontend calls
 └── supabase/
     └── migrations/        # versioned SQL — never manual dashboard edits
@@ -55,9 +58,10 @@ in the API.
 
 ### 1. Split UI and API (not a Next.js monolith)
 `apps/web` is UI-only. It never talks to an AI provider or writes to Supabase
-with elevated privileges — everything goes through `apps/api`. This keeps
-the service-role key and provider API keys out of the browser and the web
-container.
+— everything data-related goes through `apps/api`. This keeps the
+service-role key and provider API keys out of the browser and the web
+container. Login uses Clerk in the browser; the API verifies Clerk sessions
+when protecting routes.
 
 ### 2. One database, not a separate vector DB
 Supabase Postgres + pgvector holds both relational data (applications, job
@@ -103,16 +107,20 @@ action in the UI (or opens a mailto: / Gmail draft for me to review).
 Email logic lives in `apps/api` (scheduled for Module 5).
 
 ### 6. Auth
-Supabase Auth, single user (me). Row-Level Security still enabled on all
-tables as good practice, scoped to `auth.uid()`. `apps/web` may read auth
-state with the anon key; privileged reads/writes go through `apps/api`.
+Clerk, single user (me). Supabase is database only — no Supabase Auth for
+this app. RLS is enabled on all tables and denies public/`anon` access;
+`apps/api` uses the service-role key and scopes queries by Clerk `user_id`
+(stored as text on each row). See `docs/modules/01-scaffold/01-scaffold-supabase.md`.
 
 ## Environments
 - **Local dev**: Docker Compose for `web` + `api`, plus a free-tier hosted
-  Supabase project (or Supabase local CLI if preferred later).
+  Supabase project (or Supabase local CLI if preferred later) and Clerk
+  (free) with `http://localhost:3000` allowed.
 - **Deploy**: containerized `web` + `api` (or equivalent hosting) + Supabase
-  hosted project. Exact host TBD in polish / deploy work.
-- **Secrets**: split by service. `apps/api/.env` holds the service-role key
-  and AI provider keys. `apps/web/.env.local` holds only browser-safe values.
-  Never commit secrets — `.env.example` files document required vars with
-  no values.
+  hosted project + Clerk. Exact host TBD in polish / deploy work.
+- **Secrets**: split by service. `apps/api/.env` holds the Supabase
+  secret key (`SUPABASE_SECRET_KEY`, or legacy service_role fallback), Clerk
+  secret key, and AI provider keys.
+  `apps/web/.env.local` holds only browser-safe values (Clerk publishable
+  key, API base URL). Never commit secrets — `.env.example` files document
+  required vars with no values.

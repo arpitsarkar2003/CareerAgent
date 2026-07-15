@@ -1,0 +1,13 @@
+---
+description: Career Agent Module 1 locked decisions and project boundaries
+alwaysApply: true
+---
+
+# Career Agent — Module 1 locks
+
+- Auth = Clerk. Supabase = Postgres + pgvector only. Web never talks to Supabase.
+- Elevated DB client: `apps/api/db/` (`SUPABASE_SECRET_KEY`, legacy `SUPABASE_SERVICE_ROLE_KEY` fallback). Do not create `apps/api/supabase/` — it shadows the `supabase` PyPI package.
+- `user_id` is text (Clerk id), not uuid FK to `auth.users`.
+- Schema via `supabase/migrations/` only. Career Agent project ref `imypinqvbhdjavuotenh` — never apply SQL to howie.
+- Probes: `GET /health`, `GET /health/db` (503 fail-closed, no secrets in body).
+- Do not start Module 2 until `docs/modules/02-…md` exists. Roadmap: `docs/ROADMAP.md`.

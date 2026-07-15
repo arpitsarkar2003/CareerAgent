@@ -1,14 +1,17 @@
 # Data Model — Career Agent
 
 All tables live in Supabase Postgres. Schema changes go through
-`supabase/migrations/` only — never manual dashboard edits. RLS enabled on
-every table, scoped to `auth.uid() = user_id` even though it's single-user
-(good habit, cheap to add now, painful to retrofit).
+`supabase/migrations/` only — never manual dashboard edits. RLS is enabled
+on every table. Auth is **Clerk** (not Supabase Auth): the browser never
+uses a Supabase user JWT, so RLS denies public/`anon` access; `apps/api`
+uses the service-role key (bypasses RLS) and filters rows by `user_id`
+(Clerk user id string).
 
-`apps/api` is the only service that writes with the Supabase service-role key.
-`apps/web` may use the anon key for auth state only.
+`apps/api` is the only service that talks to Supabase for data. `apps/web`
+does not hold Supabase keys.
 
 This is the target schema — actual migration files are written in Module 1.
+See `docs/modules/01-scaffold/01-scaffold-supabase.md`.
 
 ## `knowledge_chunks`
 The embedded knowledge base (resume, cover letters, project write-ups).
@@ -16,7 +19,7 @@ The embedded knowledge base (resume, cover letters, project write-ups).
 | column      | type          | notes                                  |
 |-------------|---------------|-----------------------------------------|
 | id          | uuid PK       |                                          |
-| user_id     | uuid          | FK → auth.users                         |
+| user_id     | text          | Clerk user id (e.g. `user_…`), not auth.users |
 | source_type | text          | 'resume' \| 'cover_letter' \| 'project' \| 'note' |
 | source_name | text          | e.g. filename or free label             |
 | content     | text          | the chunk text                          |
@@ -30,7 +33,7 @@ A pasted/imported job posting.
 | column       | type        | notes                          |
 |--------------|-------------|----------------------------------|
 | id           | uuid PK     |                                  |
-| user_id      | uuid        |                                  |
+| user_id      | text        | Clerk user id                    |
 | company      | text        |                                  |
 | title        | text        |                                  |
 | url          | text        | nullable                        |
@@ -43,7 +46,7 @@ One row per application, links a job posting to generated drafts + status.
 | column         | type        | notes                                          |
 |----------------|-------------|--------------------------------------------------|
 | id             | uuid PK     |                                                    |
-| user_id        | uuid        |                                                    |
+| user_id        | text        | Clerk user id                                      |
 | job_posting_id | uuid        | FK → job_postings                                 |
 | status         | text        | 'drafted' \| 'applied' \| 'interview' \| 'rejected' \| 'offer' |
 | resume_draft   | text        | tailored bullets/summary                          |
@@ -54,12 +57,12 @@ One row per application, links a job posting to generated drafts + status.
 | updated_at     | timestamptz |                                                    |
 
 ## `emails`
-Incoming/outgoing email tied to an application (Module 4).
+Incoming/outgoing email tied to an application (Module 5).
 
 | column         | type        | notes                                  |
 |----------------|-------------|-------------------------------------------|
 | id             | uuid PK     |                                            |
-| user_id        | uuid        |                                            |
+| user_id        | text        | Clerk user id                              |
 | application_id | uuid        | FK → applications, nullable if unmatched  |
 | direction      | text        | 'inbound' \| 'outbound_draft' \| 'sent'   |
 | subject        | text        |                                            |
@@ -77,6 +80,6 @@ Incoming/outgoing email tied to an application (Module 4).
 - Embedding dimension (1536) assumes an OpenAI-family embedding model —
   confirm and lock this in Module 1 / the API AI config before creating the
   vector column, since changing it later means re-embedding everything.
-- No hard foreign-key cascade decisions made yet (e.g. delete job_posting →
-  what happens to application?) — will default to `ON DELETE RESTRICT` and
-  revisit in Module 1 if needed.
+- Foreign keys (Module 1): `applications.job_posting_id` → `job_postings(id)`
+  `ON DELETE RESTRICT`; `emails.application_id` → `applications(id)` nullable
+  `ON DELETE SET NULL`.
