@@ -14,7 +14,7 @@ scope — the agent prepares, a human clicks submit.
 | Supabase | Postgres + pgvector + Auth |
 | Docker Compose | Runs `web` + `api` locally |
 
-Default AI provider: OpenRouter, via a provider-agnostic adapter in `apps/api`.
+Default AI provider: Cloudflare Workers AI, via a provider-agnostic adapter in `apps/api`.
 
 ## Docs
 

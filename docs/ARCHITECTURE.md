@@ -33,7 +33,8 @@ local runner never holds Supabase, Clerk, or AI provider secrets.
                        │ (chat, embed)  │
                        └───────┬───────┘
                                ▼
-                  OpenRouter / OpenAI / Anthropic
+              Cloudflare Workers AI (default)
+              (+ future OpenAI / Anthropic seam)
 
                        ┌───────────────┐
                        │  email module  │  → Gmail API or Resend
@@ -130,12 +131,14 @@ chunks or query latency becomes a problem.
 
 ### 8. AI provider abstraction
 All AI calls go through `apps/api/ai/`, never direct SDKs inside routers.
-Module 2 ships a narrow `embed_text()` using **Cloudflare Workers AI**
-(`@cf/baai/bge-large-en-v1.5`, 1024-dim) for free-tier embeddings
-(`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`). Module 3 replaces that
-with a provider-agnostic adapter (`chat` + `embed`, `AI_PROVIDER` switch).
-Embedding model/dimension stays fixed independent of the chat model —
-switching either requires re-embedding the whole knowledge base.
+Module 3 ships a provider-agnostic adapter (`chat` + `embed`) with
+**Cloudflare Workers AI** as the default (and currently only) implementation
+(`AI_PROVIDER=cloudflare`). Defaults: chat `@cf/zai-org/glm-4.7-flash`,
+embed `@cf/baai/bge-large-en-v1.5` (1024-dim). Credentials:
+`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`. Chat and embedding models
+are separate env vars (`CHAT_MODEL`, `EMBEDDING_MODEL`) — switching the
+embedding model/dimension requires re-embedding the whole knowledge base.
+Module 2's `embed_text()` facade still exists and delegates to this adapter.
 
 ### 9. RAG flow for drafting an application (extended)
 1. Company research (funding, tech stack, news, culture) is gathered and

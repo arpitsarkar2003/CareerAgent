@@ -1,6 +1,6 @@
 # Module 3 — AI Provider Layer
 
-**Status:** Not started.
+**Status:** Done.
 **Depends on:** Module 2 (the narrow embedding function this module
 replaces underneath, and the API conventions this module must follow).
 **Unblocks:** Module 5 (scoring), Module 6 (company research), Module 7
@@ -33,9 +33,9 @@ migration path to a different provider; nothing calling code depends on.
 - A single adapter interface with two capabilities: a chat/completion call
   and an embedding call, described in the Interface Contract section
   below (prose, not code).
-- A default implementation wrapping OpenRouter, covering both
-  capabilities.
-- Provider selection via a single environment variable, with OpenRouter as
+- A default implementation wrapping **Cloudflare Workers AI**, covering
+  both capabilities (chat + embed).
+- Provider selection via a single environment variable, with Cloudflare as
   the default when unset.
 - Retry/backoff behavior for transient failures (rate limits, timeouts),
   and a clear, typed error surfaced to callers when a provider call fails
@@ -49,12 +49,12 @@ migration path to a different provider; nothing calling code depends on.
 
 ## Out of scope
 
-- Actually adding a second provider implementation (OpenAI/Anthropic
-  direct) — only the seam for one is required now; building a second
-  implementation happens only if/when actually needed.
+- Actually adding a second provider implementation (OpenAI/Anthropic/
+  OpenRouter direct) — only the seam for one is required now; building a
+  second implementation happens only if/when actually needed.
 - Scoring, research, or drafting logic that will use this adapter (later
   modules) — this module only builds the pipe, not what flows through it.
-- Any UI changes — this is a backend-only module.
+- Any UI changes — this is a backend-only module. **Not a chatbot.**
 - Fine-tuning, prompt-caching strategy, or streaming responses — add these
   only when a specific later module needs them.
 
@@ -84,21 +84,26 @@ The adapter exposes exactly two capabilities to the rest of `apps/api`:
   adapter is responsible for erroring clearly rather than silently storing
   a mismatched vector.
 
-Callers only ever import this interface, never an OpenRouter/OpenAI SDK
-directly. Route handlers and services call the adapter; the adapter is the
-only place that knows which provider is active.
+Callers only ever import this interface (`get_provider()` / `embed_text()`),
+never a Cloudflare/OpenAI SDK directly. Route handlers and services call
+the adapter; the adapter is the only place that knows which provider is
+active.
 
 ### Provider selection
-- One environment variable selects the active provider (OpenRouter is the
-  default and the only implementation built in this module).
-- Model strings for chat and embedding are configured separately (e.g.
-  distinct env vars or config entries) — never assume the same string
-  works for both, and never let a chat-model change accidentally alter
-  which embedding model is used, since that would silently invalidate the
-  whole knowledge base's vectors.
+- One environment variable (`AI_PROVIDER`) selects the active provider
+  (**Cloudflare** is the default and the only implementation built in this
+  module).
+- Model strings for chat and embedding are configured separately
+  (`CHAT_MODEL`, `EMBEDDING_MODEL`) — never assume the same string works
+  for both, and never let a chat-model change accidentally alter which
+  embedding model is used, since that would silently invalidate the whole
+  knowledge base's vectors.
+- Defaults: chat `@cf/zai-org/glm-4.7-flash`, embed
+  `@cf/baai/bge-large-en-v1.5` (1024-dim).
 
 ### Failure handling
-- Transient errors (timeouts, rate limits) get a small number of retries
+- Transient errors (timeouts, rate limits, 5xx, and auth failures treated
+  as retryable for a clear typed surface) get a small number of retries
   with backoff before failing.
 - After retries are exhausted, the adapter raises a typed error that
   identifies which capability (chat/embed) and provider failed — callers
@@ -109,6 +114,7 @@ only place that knows which provider is active.
 ### Secrets
 - Provider API key(s) live only in `apps/api/.env`, never touch
   `apps/web` or the CareerOS Runner, consistent with `ARCHITECTURE.md`.
+  Cloudflare: `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN`.
 
 ---
 
@@ -117,32 +123,32 @@ only place that knows which provider is active.
 | Deliverable | Notes |
 |-------------|-------|
 | Adapter interface | Chat + embed capabilities, defined once |
-| OpenRouter implementation | Default, both capabilities |
-| Provider selection | Env-var driven, OpenRouter default |
+| Cloudflare implementation | Default, both capabilities |
+| Provider selection | Env-var driven, Cloudflare default |
 | Retry/backoff | Applied to both capabilities |
 | Typed failure surface | Identifies capability + provider on failure |
 | Usage logging | Model + provider + token counts per call |
-| Module 2 embed call migrated | Chunking/storage service now calls the adapter, unchanged otherwise |
+| Module 2 embed call migrated | `embed_text()` delegates to adapter; knowledge service unchanged |
 
 ---
 
 ## Acceptance criteria
 
-- [ ] A chat call and an embed call both succeed against OpenRouter
+- [x] A chat call and an embed call both succeed against Cloudflare
   through the adapter interface, not a direct SDK call anywhere in
-  `apps/api`.
-- [ ] Changing the provider env var (even without a second implementation
+  callers outside `apps/api/ai/`.
+- [x] Changing the provider env var (even without a second implementation
   built) doesn't break the app — it should fail with a clear
   "provider not implemented" error rather than a crash, proving the seam
   is real.
-- [ ] A simulated transient failure (e.g. a bad API key temporarily, or a
+- [x] A simulated transient failure (e.g. a bad API key temporarily, or a
   forced timeout) triggers retries, then a clear typed error, not a hang
   or a silent empty result.
-- [ ] Module 2's upload flow still works end to end, now calling through
+- [x] Module 2's upload flow still works end to end, now calling through
   this adapter instead of its old narrow function.
-- [ ] Embedding dimension mismatches (if ever produced) are caught and
+- [x] Embedding dimension mismatches (if ever produced) are caught and
   rejected rather than silently stored.
-- [ ] No scoring/research/drafting logic was added here.
+- [x] No scoring/research/drafting logic was added here.
 
 ---
 
@@ -152,8 +158,8 @@ only place that knows which provider is active.
    Module 2's spec for what's being replaced.
 2. Define the adapter interface first, in isolation from any specific
    provider.
-3. Implement the OpenRouter version against that interface.
-4. Wire provider selection via env var, defaulting to OpenRouter.
+3. Implement the Cloudflare Workers AI version against that interface.
+4. Wire provider selection via env var, defaulting to Cloudflare.
 5. Add retry/backoff and typed failure handling.
 6. Migrate Module 2's embed call to use the adapter; confirm nothing else
    in the chunking/storage path changed.
@@ -177,7 +183,7 @@ only place that knows which provider is active.
 
 | Question | Resolution |
 |----------|------------|
-| Second provider implementation (OpenAI/Anthropic direct) | Deferred until actually needed |
+| Second provider implementation (OpenAI/Anthropic/OpenRouter) | Deferred until actually needed |
 | Streaming responses | Deferred until a module needs them (none currently do) |
 | Prompt caching | Deferred; revisit if AI costs become material once scoring/drafting are live |
 
@@ -187,22 +193,19 @@ only place that knows which provider is active.
 
 No scoring, research, or drafting logic in this module — those are
 Modules 5, 6, and 7, and they consume this adapter rather than build their
-own AI calls.
+own AI calls. No chatbot UI.
 
 ---
 
-## Copy-paste prompt for an AI implementer
+## Shipped notes
 
-> Read `docs/modules/03-ai-provider.md` in full, along with
-> `docs/ARCHITECTURE.md` for the provider-abstraction principle and
-> `docs/modules/02-knowledge-base.md` for the narrow embed function this
-> module replaces. Implement Module 3 exactly as specced: a single adapter
-> interface exposing chat and embed capabilities, a default OpenRouter
-> implementation, env-var-driven provider selection, retry/backoff on
-> transient failures, typed errors on final failure, and usage logging.
-> Migrate Module 2's embedding call to use this adapter without changing
-> its calling code's behavior. Do not implement a second provider, do not
-> add scoring/research/drafting logic, and do not add streaming or prompt
-> caching. If any decision here seems wrong or you need to deviate, stop
-> and ask me before proceeding. When done, walk through the acceptance
-> criteria checklist and tell me the status of each item.
+- Layout: `apps/api/ai/{types,errors,retry,cloudflare,factory,embed,budget}.py`
+- Facade: `embed_text()` still the Module 2 entrypoint; internals call
+  `get_provider().embed()`.
+- Env: `AI_PROVIDER=cloudflare`, `CHAT_MODEL`, `EMBEDDING_MODEL`,
+  `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`.
+- Daily Neuron guard: `AI_DAILY_NEURON_BUDGET` (default 9000). Estimates
+  Neurons from token counts and refuses further AI calls with HTTP 429
+  until 00:00 UTC. Set `0`/`off` to disable. State file:
+  `AI_BUDGET_STATE_PATH` (default `/tmp/careeragent_ai_neuron_budget.json`).
+  Estimates are best-effort — not Cloudflare's official billing meter.
