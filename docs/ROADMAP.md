@@ -3,15 +3,18 @@
 Build order. Each module gets its own spec in `docs/modules/NN-name.md`,
 written just before we build it, then checked off here.
 
-- [ ] **Module 1 — Scaffold + Supabase schema**
-  Docker Compose for `apps/web` + `apps/api`, create Supabase project,
-  enable pgvector, write migrations for all tables in `DATA_MODEL.md`,
-  set up RLS policies, Supabase client in `apps/api/supabase/`.
+- [x] **Module 1 — Scaffold + Supabase schema**
+  Spec: `docs/modules/01-scaffold/01-scaffold-supabase.md`. Docker Compose for
+  `apps/web` + `apps/api`, free-tier Supabase (DB + pgvector only),
+  Clerk env wiring (Auth), migrations for all tables in `DATA_MODEL.md`,
+  RLS deny-public + API elevated client in `apps/api/db/`.
+  **M1.1:** Thin Clerk shell — landing Sign in/up, protected `/dashboard` stub
+  (web middleware only; API JWT verify still deferred to Module 2).
 
 - [ ] **Module 2 — Knowledge base ingestion**
   Upload flow (web UI → API) for resume/cover letters/project notes →
   chunking → embedding → store in `knowledge_chunks`. Basic
-  "view/edit my knowledge base" UI.
+  "view/edit my knowledge base" UI under `/dashboard`.
 
 - [ ] **Module 3 — AI provider layer**
   `apps/api/ai/` adapter interface, OpenRouter implementation, env-var

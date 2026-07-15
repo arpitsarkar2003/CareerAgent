@@ -51,10 +51,11 @@ application → agent matches it to the application record → drafts a reply �
 I review and send.
 
 ## Architecture constraint (see `ARCHITECTURE.md`)
-Two services: `apps/web` (Next.js UI) and `apps/api` (FastAPI). The UI never
-calls AI providers or writes to Supabase with elevated privileges — everything
-goes through the API. Default AI provider is OpenRouter via a provider-agnostic
-adapter in `apps/api`.
+Two services: `apps/web` (Next.js UI) and `apps/api` (FastAPI). Auth is
+Clerk. The UI never calls AI providers or Supabase directly — everything
+data-related goes through the API. Supabase is Postgres + pgvector only.
+Default AI provider is OpenRouter via a provider-agnostic adapter in
+`apps/api`.
 
 ## Success criteria (v1)
 - I can paste a job posting and get a usable tailored draft in under a minute.
