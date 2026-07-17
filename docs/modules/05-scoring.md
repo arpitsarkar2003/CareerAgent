@@ -1,6 +1,6 @@
 # Module 5 — Scoring Agent
 
-**Status:** Not started.
+**Status:** Done.
 **Depends on:** Module 4 (postings to score already land in `job_postings`
 with `score = null`), Module 3 (AI adapter's chat capability), Module 2
 (dashboard shell, reusable components, API conventions).
@@ -116,6 +116,21 @@ view.
   "scoring failed" in the UI, and gets a manual "Retry scoring" action.
   Other postings in the same batch are unaffected.
 
+### Progress model: client-orchestrated
+- `POST /api/v1/search/runs` stays a single request that runs the
+  connectors and returns the resulting posting IDs — it does not also
+  block on scoring all of them, and there is no SSE/streaming/background
+  job anywhere in this flow.
+- After that response comes back, the web client calls the same
+  per-posting scoring endpoint (the one also used for Retry) once per
+  returned ID, sequentially, updating a simple "Scoring N of M…" progress
+  readout as each call resolves. This keeps one shared scoring service/
+  endpoint used by both the run-search flow and standalone retries,
+  rather than two separate code paths.
+- If the browser is closed or navigated away mid-batch, nothing is lost —
+  postings not yet scored simply remain `score = null` and are picked up
+  by the same retry mechanism the next time the list is viewed.
+
 ---
 
 ## UX
@@ -162,12 +177,17 @@ Badge/Toggle patterns).
 Follows Module 2's established conventions exactly — versioned
 resource-oriented routes, consistent response envelope, pagination,
 service-layer separation. Specifically for this module:
+- `POST /api/v1/search/runs` returns once connectors finish and postings
+  are stored — it does not block on scoring. Scoring is driven by the
+  client calling the per-posting scoring endpoint for each returned ID,
+  per the Progress model decision above.
 - The postings list endpoint gains query support for score threshold
   filtering and sort order, rather than the client fetching everything
   and filtering client-side.
-- Scoring itself is a service function callable both from the "run
-  search → score" flow and from a single-posting retry endpoint — not
-  logic duplicated between the two call sites.
+- Scoring itself is a service function callable both from the per-posting
+  scoring endpoint (used by the client's post-search loop) and from a
+  single-posting retry endpoint — not logic duplicated between the two
+  call sites.
 
 ---
 
@@ -187,20 +207,20 @@ service-layer separation. Specifically for this module:
 
 ## Acceptance criteria
 
-- [ ] After "Run search" completes, every fetched posting has either a
+- [x] After "Run search" completes, every fetched posting has either a
   score + reasoning, or a visible "scoring failed" state — never a
   silent null with no explanation.
-- [ ] Postings below threshold are hidden by default and appear when the
+- [x] Postings below threshold are hidden by default and appear when the
   toggle is switched on; none are deleted.
-- [ ] The list is sorted by score descending by default.
-- [ ] A forced scoring failure (e.g. temporarily bad AI credentials) on
+- [x] The list is sorted by score descending by default.
+- [x] A forced scoring failure (e.g. temporarily bad AI credentials) on
   one posting doesn't stop the rest of the batch from scoring, and shows
   a working "Retry scoring" action on the failed one.
-- [ ] Changing the threshold setting changes which postings show by
+- [x] Changing the threshold setting changes which postings show by
   default without a code change or redeploy.
-- [ ] Scoring uses only `resume`-type knowledge chunks for the profile
+- [x] Scoring uses only `resume`-type knowledge chunks for the profile
   context, not the full knowledge base.
-- [ ] No company research, drafting, or auto-apply logic is present.
+- [x] No company research, drafting, or auto-apply logic is present.
 
 ---
 
@@ -253,6 +273,59 @@ service-layer separation. Specifically for this module:
 
 No company research, drafting, auto-apply approval, or scheduled
 re-scoring in this module — unchanged from `PRD.md`.
+
+---
+
+## Shipped notes (post-acceptance)
+
+- Migration: `supabase/migrations/20260717130000_module5_score_threshold.sql`
+  — adds `search_configs.score_threshold` (default 80, 0–100 check).
+  Applied to project `imypinqvbhdjavuotenh`. `job_postings.score` /
+  `score_reasoning` already existed from Module 4.
+- Scoring service: `apps/api/services/scoring.py` —
+  `build_profile_summary(user_id)` (resume-only chunks, rebuilt fresh,
+  ~14k char cap) and `score_posting(user_id, posting_id)` (one chat call,
+  strict JSON parse, clamps score 0–100, writes `score` +
+  `score_reasoning`). Shared by both call sites — no duplicated scoring
+  logic.
+- Routes: `GET /api/v1/search/postings/{id}` (fetch one posting — used by
+  the UI to show a failed card's details even off the current filtered
+  page), `POST /api/v1/search/postings/{id}/score` (score/retry, used by
+  both the post-search loop and the standalone Retry action).
+  `GET /api/v1/search/postings` gained `min_score` and `include_unscored`
+  query params; default sort is now `score desc, discovered_at desc`.
+  `PUT /api/v1/search/config` gained `score_threshold`.
+- `POST /api/v1/search/runs` returns `scoring_queue: string[]` (newly
+  inserted posting IDs only — never duplicates) instead of scoring
+  anything itself, per the locked client-orchestrated progress model.
+- Typed failure surface: registered a `ProviderError` → API-envelope
+  exception handler in `apps/api/errors.py` so an AI adapter failure
+  (budget, bad credentials, unparseable response) surfaces as a clear
+  `provider_error` with a real message, not a bare 500.
+- **Adapter fix (Module 3 scope, discovered while verifying Module 5):**
+  the default chat model (`@cf/zai-org/glm-4.7-flash`) is a reasoning
+  model that spends most of `max_tokens` on hidden chain-of-thought
+  before emitting visible content — this silently truncated structured
+  scoring output. Fixed in `apps/api/ai/cloudflare.py`'s `chat()` payload
+  by always sending `chat_template_kwargs: {"enable_thinking": false}`;
+  cut a trivial test call from ~860 completion tokens to 11 with clean
+  JSON output. `AIProvider.chat()`'s interface contract is unchanged —
+  this is adapter-internal, invisible to every caller.
+- Frontend: `apps/web/src/components/ui/{Badge,Toggle}.tsx` added to the
+  shared component set. `SearchPage` runs the client-orchestrated scoring
+  loop (sequential, one call per queued ID) with a "Scoring N of M…"
+  readout; per-run failures are force-merged into the visible list (via
+  the single-posting fetch) so a failure is never silently hidden by the
+  default threshold filter. `PostingsList` gained the score Badge,
+  expandable reasoning panel, "Show below-threshold" Toggle, and inline
+  "Retry scoring" on failed cards.
+- Verified end-to-end against the live Career Agent Supabase project and
+  real Cloudflare credentials: resume-only profile isolation (a
+  `note`-type marker chunk confirmed excluded), one real posting scored
+  with structured reasoning, a forced bad-credential failure isolated to
+  one posting (sibling unaffected) with a successful retry after
+  restoring credentials, and `min_score` / `include_unscored` filtering
+  confirmed on real rows.
 
 ---
 

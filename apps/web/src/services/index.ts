@@ -14,6 +14,8 @@ export {
   updateSearchConfig,
   runSearch,
   listPostings,
+  getPosting,
+  scorePosting,
   type JobSource,
   type SearchConfig,
   type SearchConfigUpdate,
@@ -21,5 +23,6 @@ export {
   type ConnectorRunResult,
   type SearchRunResult,
   type JobPosting,
+  type ScoreReasoning,
 } from "@/services/search";
 

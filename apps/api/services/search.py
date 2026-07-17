@@ -95,16 +95,18 @@ async def run_search(user_id: str) -> dict[str, Any]:
     total_inserted = 0
     total_skipped = 0
     total_matched = 0
+    scoring_queue: list[str] = []
 
     for result, matched in results:
-        inserted, skipped = job_postings_service.insert_postings_idempotent(
+        inserted_ids, skipped = job_postings_service.insert_postings_idempotent(
             user_id, matched
         )
-        result.inserted = inserted
+        result.inserted = len(inserted_ids)
         result.skipped_duplicates = skipped
-        total_inserted += inserted
+        total_inserted += len(inserted_ids)
         total_skipped += skipped
         total_matched += result.matched
+        scoring_queue.extend(inserted_ids)
         connector_summaries.append(_result_dict(result))
 
     return {
@@ -112,6 +114,11 @@ async def run_search(user_id: str) -> dict[str, Any]:
         "total_matched": total_matched,
         "total_inserted": total_inserted,
         "total_skipped_duplicates": total_skipped,
+        # Module 5: newly inserted posting IDs the client scores next, one
+        # call per ID via the shared scoring endpoint. Never includes
+        # duplicates skipped this run — those already have a score (or a
+        # known failed state) from whenever they were first inserted.
+        "scoring_queue": scoring_queue,
         "config": {
             "role_keywords": role_keywords,
             "locations": locations,

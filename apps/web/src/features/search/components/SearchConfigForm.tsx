@@ -48,6 +48,7 @@ export function SearchConfigForm({ onSaved }: SearchConfigFormProps) {
   const [greenhouseBoards, setGreenhouseBoards] = useState("");
   const [leverCompanies, setLeverCompanies] = useState("");
   const [ashbyBoards, setAshbyBoards] = useState("");
+  const [scoreThreshold, setScoreThreshold] = useState("80");
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +65,7 @@ export function SearchConfigForm({ onSaved }: SearchConfigFormProps) {
         setGreenhouseBoards(joinList(config.greenhouse_boards));
         setLeverCompanies(joinList(config.lever_companies));
         setAshbyBoards(joinList(config.ashby_boards));
+        setScoreThreshold(String(config.score_threshold));
         onSaved?.(config);
       } catch (err) {
         if (!cancelled) {
@@ -91,6 +93,11 @@ export function SearchConfigForm({ onSaved }: SearchConfigFormProps) {
       push("error", "Sign in required");
       return;
     }
+    const parsedThreshold = Number(scoreThreshold);
+    if (!Number.isFinite(parsedThreshold) || parsedThreshold < 0 || parsedThreshold > 100) {
+      push("error", "Score threshold must be a number between 0 and 100");
+      return;
+    }
     setBusy(true);
     try {
       const saved = await updateSearchConfig(token, {
@@ -100,6 +107,7 @@ export function SearchConfigForm({ onSaved }: SearchConfigFormProps) {
         greenhouse_boards: splitList(greenhouseBoards),
         lever_companies: splitList(leverCompanies),
         ashby_boards: splitList(ashbyBoards),
+        score_threshold: parsedThreshold,
       });
       push("success", "Search settings saved");
       onSaved?.(saved);
@@ -200,6 +208,16 @@ export function SearchConfigForm({ onSaved }: SearchConfigFormProps) {
           value={ashbyBoards}
           onChange={(e) => setAshbyBoards(e.target.value)}
           placeholder="notion, openai, linear"
+        />
+        <Input
+          label="Score threshold"
+          hint="0–100. Postings scoring below this are hidden by default (toggle reveals them)."
+          type="number"
+          min={0}
+          max={100}
+          value={scoreThreshold}
+          onChange={(e) => setScoreThreshold(e.target.value)}
+          placeholder="80"
         />
 
         <div className="flex justify-end">

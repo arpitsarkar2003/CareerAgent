@@ -28,11 +28,11 @@ cover the 9-agent design.
   `job_postings` with `source` set, unscored. Spec:
   `docs/modules/04-job-connectors.md`.
 
-- [ ] **Module 5 — Scoring agent**
+- [x] **Module 5 — Scoring agent**
   Semantic profile-matching (skills, location, experience — not keyword
   matching) against `job_postings`, writes `score` + `score_reasoning`.
   Threshold cutoff; below-threshold postings are stored but hidden from
-  the default review list.
+  the default review list. Spec: `docs/modules/05-scoring.md`.
 
 - [ ] **Module 6 — Company research agent**
   Given a company name, gathers funding/tech stack/founders/news/culture/

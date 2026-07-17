@@ -10,6 +10,15 @@ from errors import ValidationAppError
 
 MAX_LIST_ITEMS = 50
 MAX_ITEM_LEN = 100
+DEFAULT_SCORE_THRESHOLD = 80.0
+
+
+def _clean_threshold(value: float | None, *, existing: float) -> float:
+    if value is None:
+        return existing
+    if value < 0 or value > 100:
+        raise ValidationAppError("score_threshold must be between 0 and 100")
+    return float(value)
 
 
 def _clean_list(values: list[str] | None, *, field: str) -> list[str]:
@@ -47,6 +56,7 @@ def _row_to_config(row: dict[str, Any] | None, *, user_id: str) -> dict[str, Any
             "greenhouse_boards": [],
             "lever_companies": [],
             "ashby_boards": [],
+            "score_threshold": DEFAULT_SCORE_THRESHOLD,
             "updated_at": None,
             "created_at": None,
         }
@@ -58,6 +68,11 @@ def _row_to_config(row: dict[str, Any] | None, *, user_id: str) -> dict[str, Any
         "greenhouse_boards": list(row.get("greenhouse_boards") or []),
         "lever_companies": list(row.get("lever_companies") or []),
         "ashby_boards": list(row.get("ashby_boards") or []),
+        "score_threshold": float(
+            row.get("score_threshold")
+            if row.get("score_threshold") is not None
+            else DEFAULT_SCORE_THRESHOLD
+        ),
         "updated_at": row.get("updated_at"),
         "created_at": row.get("created_at"),
     }
@@ -85,6 +100,7 @@ def upsert_config(
     greenhouse_boards: list[str] | None = None,
     lever_companies: list[str] | None = None,
     ashby_boards: list[str] | None = None,
+    score_threshold: float | None = None,
 ) -> dict[str, Any]:
     existing = get_config(user_id)
     now = datetime.now(timezone.utc).isoformat()
@@ -120,6 +136,9 @@ def upsert_config(
             _clean_list(ashby_boards, field="ashby_boards")
             if ashby_boards is not None
             else existing["ashby_boards"]
+        ),
+        "score_threshold": _clean_threshold(
+            score_threshold, existing=existing["score_threshold"]
         ),
         "updated_at": now,
     }

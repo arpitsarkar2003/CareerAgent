@@ -48,11 +48,31 @@ def _detail_to_error(detail: Any) -> tuple[str, str]:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    # Local import: avoids a module-load-time circular import, since the
+    # `ai` package's __init__ imports ai.embed, which imports this module
+    # (root `errors`) for AppError. By the time this function runs (from
+    # main.py, after both modules have finished loading), the cycle is gone.
+    from ai.errors import ProviderError
+
     @app.exception_handler(AppError)
     async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content=error_body(exc.code, exc.message),
+        )
+
+    @app.exception_handler(ProviderError)
+    async def provider_error_handler(
+        _request: Request, exc: ProviderError
+    ) -> JSONResponse:
+        # Module 3's typed failure surface, translated to the API envelope.
+        # Scoring (Module 5) and future AI-calling modules rely on this so
+        # a failed call surfaces as a clear per-item error, never a bare 500.
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_body(
+                "provider_error", f"{exc.provider}/{exc.capability}: {exc.message}"
+            ),
         )
 
     @app.exception_handler(RequestValidationError)

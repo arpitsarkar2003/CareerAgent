@@ -11,6 +11,7 @@ from auth import require_user_id
 from schemas.envelope import ok_response
 from schemas.pagination import pagination_query
 from services import job_postings as job_postings_service
+from services import scoring as scoring_service
 from services import search as search_service
 from services import search_config as search_config_service
 
@@ -26,6 +27,7 @@ class SearchConfigBody(BaseModel):
     greenhouse_boards: list[str] | None = None
     lever_companies: list[str] | None = None
     ashby_boards: list[str] | None = None
+    score_threshold: float | None = None
 
 
 @router.get("/config")
@@ -49,6 +51,7 @@ async def put_search_config(
         greenhouse_boards=body.greenhouse_boards,
         lever_companies=body.lever_companies,
         ashby_boards=body.ashby_boards,
+        score_threshold=body.score_threshold,
     )
     return ok_response(data)
 
@@ -67,10 +70,40 @@ async def get_postings(
     user_id: str = Depends(require_user_id),
     pagination=Depends(pagination_query),
     source: SourceFilter | None = Query(default=None),
+    min_score: float | None = Query(default=None, ge=0, le=100),
+    include_unscored: bool = Query(default=False),
 ) -> dict[str, Any]:
     data = job_postings_service.list_postings(
         user_id=user_id,
         pagination=pagination,
         source=source,
+        min_score=min_score,
+        include_unscored=include_unscored,
     )
     return ok_response(data.model_dump())
+
+
+@router.get("/postings/{posting_id}")
+async def get_posting(
+    posting_id: str,
+    user_id: str = Depends(require_user_id),
+) -> dict[str, Any]:
+    """Fetch one posting by id — used by the UI to show a failed-scoring
+    card's details even when that posting wouldn't appear on the current
+    threshold-filtered/paginated list."""
+    data = job_postings_service.get_posting(user_id, posting_id)
+    return ok_response(data)
+
+
+@router.post("/postings/{posting_id}/score")
+async def score_posting(
+    posting_id: str,
+    user_id: str = Depends(require_user_id),
+) -> dict[str, Any]:
+    """Score (or re-score after a failure) a single posting.
+
+    Shared service function powers both this route and the automatic
+    post-search client loop — no scoring logic duplicated between them.
+    """
+    data = await scoring_service.score_posting(user_id, posting_id)
+    return ok_response(data)

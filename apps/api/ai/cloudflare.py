@@ -294,7 +294,15 @@ class CloudflareAdapter:
         payload: dict = {
             "messages": [
                 {"role": m.role, "content": m.content} for m in messages
-            ]
+            ],
+            # Some Workers AI chat models (e.g. glm-4.7-flash) are
+            # reasoning models that otherwise spend most of max_tokens on
+            # hidden chain-of-thought before emitting any visible content
+            # — ChatResult.text never exposed that reasoning to callers
+            # anyway, so disabling it is a pure efficiency win, not a
+            # behavior change from this adapter's callers' point of view.
+            # Models that don't recognize this field ignore it.
+            "chat_template_kwargs": {"enable_thinking": False},
         }
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
