@@ -9,6 +9,7 @@ load_dotenv()
 from errors import register_exception_handlers
 from routers.health import router as health_router
 from routers.knowledge import router as knowledge_router
+from routers.search import router as search_router
 
 app = FastAPI(title="Career Agent API")
 
@@ -29,3 +30,4 @@ register_exception_handlers(app)
 
 app.include_router(health_router)
 app.include_router(knowledge_router, prefix="/api/v1/knowledge")
+app.include_router(search_router, prefix="/api/v1/search")

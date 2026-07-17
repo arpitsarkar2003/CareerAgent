@@ -67,8 +67,9 @@ before that module is built.
 **Module 1 done** (scaffold + schema + thin Clerk auth shell).
 **Module 2 done** (knowledge ingest + dashboard shell + API conventions).
 **Module 3 done** (AI provider adapter: chat + embed via Cloudflare Workers AI).
-See `docs/ROADMAP.md`. Next: Module 4 (job source connectors) — write its
-spec before starting.
+**Module 4 done** (Greenhouse/Lever/Ashby connectors + manual Run search +
+New Postings view). See `docs/ROADMAP.md`. Next: Module 5 (scoring) — write
+its spec before starting.
 
 Career Agent Supabase project ref: `imypinqvbhdjavuotenh` (never howie).
 API DB client lives in `apps/api/db/` (avoids shadowing the `supabase` PyPI package).

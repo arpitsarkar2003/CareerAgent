@@ -9,4 +9,17 @@ export {
 } from "@/services/health";
 export { AUTH_ROUTES, getPostAuthRedirect } from "@/services/auth";
 export * from "@/services/knowledge";
+export {
+  getSearchConfig,
+  updateSearchConfig,
+  runSearch,
+  listPostings,
+  type JobSource,
+  type SearchConfig,
+  type SearchConfigUpdate,
+  type ConnectorRunStatus,
+  type ConnectorRunResult,
+  type SearchRunResult,
+  type JobPosting,
+} from "@/services/search";
 

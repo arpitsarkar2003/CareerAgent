@@ -20,7 +20,7 @@ export const DASHBOARD_NAV: NavItem[] = [
     id: "search",
     label: "Search",
     href: "/dashboard/search",
-    enabled: false,
+    enabled: true,
   },
   {
     id: "applications",

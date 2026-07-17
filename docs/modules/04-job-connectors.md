@@ -1,6 +1,6 @@
 # Module 4 — Job Source Connectors (API-Based)
 
-**Status:** Not started.
+**Status:** Done.
 **Depends on:** Module 2 (dashboard shell, reusable components, API
 conventions), Module 1 (`job_postings` schema).
 **Unblocks:** Module 5 (scoring runs against what this module stores),
@@ -128,18 +128,18 @@ the sources where it's safest and fastest to get right.
 
 ## Acceptance criteria
 
-- [ ] Clicking "Run search" fetches from all three connectors and stores
+- [x] Clicking "Run search" fetches from all three connectors and stores
   new postings with the correct `source` value.
-- [ ] Running it again immediately produces no duplicate rows for
+- [x] Running it again immediately produces no duplicate rows for
   postings already stored.
-- [ ] A rate-limit or network failure on one connector doesn't prevent
+- [x] A rate-limit or network failure on one connector doesn't prevent
   the other two from completing, and is visibly reported rather than
   silently swallowed.
-- [ ] The "New postings" view renders using the Module 2 dashboard shell
+- [x] The "New postings" view renders using the Module 2 dashboard shell
   and reusable components — not a one-off layout.
-- [ ] No scoring, drafting, LinkedIn/browser-gated source, or scheduling
+- [x] No scoring, drafting, LinkedIn/browser-gated source, or scheduling
   logic is present.
-- [ ] List endpoint supports pagination per Module 2's API conventions.
+- [x] List endpoint supports pagination per Module 2's API conventions.
 
 ---
 
@@ -173,9 +173,19 @@ the sources where it's safest and fastest to get right.
 
 | Question | Resolution |
 |----------|------------|
-| Parallel vs. sequential connector fetching | Implementer's choice |
-| Where search-term config is stored | Implementer's choice, must be editable without a code change |
-| Exact dedup key per source if URLs are unstable | Document the chosen fallback per connector in the PR |
+| Parallel vs. sequential connector fetching | **Shipped:** parallel via `asyncio.gather`, each connector isolated |
+| Where search-term config is stored | **Shipped:** `search_configs` table (per-user), editable in dashboard |
+| Exact dedup key per source if URLs are unstable | **Shipped:** prefer `(user_id, source, url)`; fallback `(user_id, source, external_id)` when url is null. Greenhouse `external_id` = job id; Lever = posting id; Ashby = job/posting id. |
+
+## Shipped notes (post-acceptance)
+
+- Routes: `GET/PUT /api/v1/search/config`, `POST /api/v1/search/runs`,
+  `GET /api/v1/search/postings` (paginated).
+- Connectors: `apps/api/services/connectors/{greenhouse,lever,ashby}.py`.
+- Dashboard: `/dashboard/search` (nav item enabled) with settings, Run
+  search, per-connector status, New postings list.
+- Migration: `supabase/migrations/20260716143000_module4_job_postings.sql`
+  (applied to project `imypinqvbhdjavuotenh`).
 
 ---
 

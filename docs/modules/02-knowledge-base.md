@@ -304,7 +304,9 @@ reuse the same Card and Button, not define their own).
   `supabase/migrations/`.
 - Chunk list UI pages at API max `limit=100` when a source has more chunks.
 - PDF hard-wrap reflow + tiny-fragment coalesce in `apps/api/services/chunking.py`
-  — resume PDF chunk quality is good enough for Module 2; refine later if needed.
+  — resume PDF chunk quality was good enough for Module 2; multi-column PDFs
+  still produce junk 1-word chunks. Full fix planned in
+  [`docs/modules/enhancements-docs/01-knowledge-pdf-chunk-quality.md`](./enhancements-docs/01-knowledge-pdf-chunk-quality.md).
 
 ---
 

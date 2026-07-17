@@ -22,10 +22,11 @@ cover the 9-agent design.
   (chat + embed), env-var provider switching, embedding model pinned +
   documented. Spec: `docs/modules/03-ai-provider.md`.
 
-- [ ] **Module 4 — Job source connectors (API-based)**
-  Greenhouse, Lever, Ashby connectors in `apps/api/sources/`. On-demand
-  fetch only, no scheduler. Stores raw postings into `job_postings` with
-  `source` set, unscored.
+- [x] **Module 4 — Job source connectors (API-based)**
+  Greenhouse, Lever, Ashby connectors in `apps/api/services/connectors/`.
+  On-demand fetch only, no scheduler. Stores raw postings into
+  `job_postings` with `source` set, unscored. Spec:
+  `docs/modules/04-job-connectors.md`.
 
 - [ ] **Module 5 — Scoring agent**
   Semantic profile-matching (skills, location, experience — not keyword
